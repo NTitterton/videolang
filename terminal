@@ -1,0 +1,39 @@
+# First, make sure we're in the root directory
+cd ..  # if you're in videolang-frontend
+
+# Remove venv from frontend directory
+rm -rf videolang-frontend/venv
+
+# Remove any existing backend and venv in root
+rm -rf videolang_backend
+rm -rf venv
+
+# Create fresh venv in root directory
+python -m venv venv
+source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+pip install django djangorestframework django-cors-headers python-dotenv openai psycopg2-binary boto3
+
+# Create new Django project
+django-admin startproject videolang_backend
+cd videolang_backend
+python manage.py startapp video_service
+
+# Create and apply migrations
+python manage.py makemigrations
+python manage.py migrate
+python manage.py createsuperuser  # Follow prompts to create an admin user
+
+# Start the server
+python manage.py runserver
+
+# In a new terminal, for frontend setup
+cd videolang-frontend
+npm install @radix-ui/react-slot class-variance-authority clsx tailwind-merge
+npx shadcn@latest init
+npx shadcn@latest add button
+npm run dev
+
+mv api/models.py videos_api/
+mv api/views.py videos_api/
+mv api/serializers.py videos_api/
+rm -rf api 
