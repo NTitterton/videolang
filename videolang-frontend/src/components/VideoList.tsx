@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { Button } from './ui/button'
+import { API_URL } from '@/config'
 
 interface Video {
   id: number
@@ -12,11 +13,6 @@ interface Video {
   uploaded_at: string
   processing_status: string
   processing_progress: number
-}
-
-interface Answer {
-  answer: string;
-  timestamp: number;
 }
 
 interface QA {
@@ -34,7 +30,7 @@ export default function VideoList() {
   const [loading, setLoading] = useState(false)
 
   const fetchVideos = () => {
-    fetch('http://localhost:8000/api/videos/')
+    fetch(`${API_URL}/api/videos/`)
       .then(res => res.json())
       .then(data => {
         console.log('Videos:', data);
@@ -49,12 +45,14 @@ export default function VideoList() {
       })
   }
 
+  // Disable ESLint for this specific useEffect since we want independent polling
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchVideos()
     // Refresh every 5 seconds
     const interval = setInterval(fetchVideos, 5000)
     return () => clearInterval(interval)
-  }, []) // Empty dependency array
+  }, []) // Keep empty dependency array
 
   const handleVideoSelect = (video: Video) => {
     setSelectedVideo(video)
@@ -68,7 +66,7 @@ export default function VideoList() {
     setLoading(true)
     try {
       const response = await fetch(
-        `http://localhost:8000/api/videos/${selectedVideo.id}/ask/`,
+        `${API_URL}/api/videos/${selectedVideo.id}/ask/`,
         {
           method: 'POST',
           headers: {

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { API_URL } from '@/config'
 
 export default function VideoUpload() {
   const [file, setFile] = useState<File | null>(null)
@@ -37,7 +38,7 @@ export default function VideoUpload() {
     
     try {
       // Get pre-signed URL
-      const response = await fetch('http://localhost:8000/api/videos/upload_url/', {
+      const response = await fetch(`${API_URL}/api/videos/upload_url/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,7 +71,7 @@ export default function VideoUpload() {
       setUploadStatus('idle')
 
       // Create video record (don't wait for this to reset UI)
-      fetch('http://localhost:8000/api/videos/', {
+      fetch(`${API_URL}/api/videos/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -42,4 +42,7 @@ rm -rf video_service/migrations/*
 touch video_service/migrations/__init__.py
 
 python manage.py makemigrations video_service
-python manage.py migrate 
+python manage.py migrate
+
+# In the frontend directory
+vercel 

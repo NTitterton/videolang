@@ -143,6 +143,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "https://videolang.vercel.app"  # Add your Vercel domain
 ]
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
