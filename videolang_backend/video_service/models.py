@@ -5,9 +5,10 @@ class Video(models.Model):
     title = models.CharField(max_length=255)
     file_url = models.URLField()
     transcript = models.TextField(blank=True, null=True)
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+    visual_analysis = models.JSONField(blank=True, null=True)
     processed = models.BooleanField(default=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title

@@ -11,7 +11,7 @@ rm -rf venv
 # Create fresh venv in root directory
 python -m venv venv
 source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-pip install django djangorestframework django-cors-headers python-dotenv openai psycopg2-binary boto3
+pip install django djangorestframework django-cors-headers python-dotenv openai psycopg2-binary boto3 requests opencv-python pillow
 
 # Create new Django project
 django-admin startproject videolang_backend
@@ -19,7 +19,7 @@ cd videolang_backend
 python manage.py startapp video_service
 
 # Create and apply migrations
-python manage.py makemigrations
+python manage.py makemigrations --dry-run
 python manage.py migrate
 python manage.py createsuperuser  # Follow prompts to create an admin user
 
@@ -36,4 +36,10 @@ npm run dev
 mv api/models.py videos_api/
 mv api/views.py videos_api/
 mv api/serializers.py videos_api/
-rm -rf api 
+rm -rf api
+
+rm -rf video_service/migrations/*
+touch video_service/migrations/__init__.py
+
+python manage.py makemigrations video_service
+python manage.py migrate 

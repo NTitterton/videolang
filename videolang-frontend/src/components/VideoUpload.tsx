@@ -46,7 +46,14 @@ export default function VideoUpload() {
 
       if (!response.ok) throw new Error('Failed to get upload URL')
 
-      const { upload_url, file_url } = await response.json()
+      const data = await response.json()
+      console.log('Upload URLs:', {
+        upload_url: data.upload_url,
+        file_url: data.file_url,
+        bucket: data.upload_url.split('/')[2].split('.')[0]  // Extract bucket name from URL
+      })
+
+      const { upload_url, file_url } = data
 
       // Upload to S3
       const uploadResponse = await fetch(upload_url, {
@@ -57,7 +64,15 @@ export default function VideoUpload() {
         },
       })
 
-      if (!uploadResponse.ok) throw new Error('Upload failed')
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('S3 Upload Error:', {
+          status: uploadResponse.status,
+          statusText: uploadResponse.statusText,
+          error: errorText
+        });
+        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      }
 
       // Create video record
       const videoResponse = await fetch('http://localhost:8000/api/videos/', {
@@ -75,8 +90,8 @@ export default function VideoUpload() {
 
       alert('Upload successful!')
     } catch (error) {
-      console.error('Upload error:', error)
-      alert('Upload failed')
+      console.error('Upload error details:', error);
+      throw error;
     } finally {
       setUploading(false)
     }
@@ -94,8 +109,14 @@ export default function VideoUpload() {
         />
         <label htmlFor="video-upload" className="cursor-pointer">
           <div className="space-y-2">
-            <p className="text-lg">Drop your video here or click to upload</p>
-            <p className="text-sm text-gray-500">Maximum duration: 3 minutes</p>
+            {file ? (
+              <p className="text-lg">Selected: {file.name}</p>
+            ) : (
+              <>
+                <p className="text-lg">Drop your video here or click to upload</p>
+                <p className="text-sm text-gray-500">Maximum duration: 3 minutes</p>
+              </>
+            )}
           </div>
         </label>
       </div>
