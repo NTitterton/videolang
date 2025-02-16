@@ -38,9 +38,9 @@ AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-default-secret-key-here')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # We'll restrict this to our Railway domain later
 
 
 # Application definition
@@ -135,6 +135,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -143,7 +144,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "https://videolang.vercel.app"  # Add your Vercel domain
+    "https://videolang.vercel.app",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://videolang.vercel.app",
 ]
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
