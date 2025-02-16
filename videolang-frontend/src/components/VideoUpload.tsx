@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 
 export default function VideoUpload() {
   const [file, setFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'error'>('idle')
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
@@ -23,6 +23,7 @@ export default function VideoUpload() {
         return
       }
       setFile(videoFile)
+      setUploadStatus('idle')  // Reset status when new file selected
     }
 
     video.src = URL.createObjectURL(videoFile)
@@ -31,7 +32,9 @@ export default function VideoUpload() {
   const handleSubmit = async () => {
     if (!file) return
 
-    setUploading(true)
+    setUploadStatus('uploading')
+    const currentFile = file // Keep a reference to the current file
+    
     try {
       // Get pre-signed URL
       const response = await fetch('http://localhost:8000/api/videos/upload_url/', {
@@ -40,60 +43,59 @@ export default function VideoUpload() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          filename: `${Date.now()}-${file.name}`,
+          filename: `${Date.now()}-${currentFile.name}`,
         }),
       })
 
       if (!response.ok) throw new Error('Failed to get upload URL')
 
       const data = await response.json()
-      console.log('Upload URLs:', {
-        upload_url: data.upload_url,
-        file_url: data.file_url,
-        bucket: data.upload_url.split('/')[2].split('.')[0]  // Extract bucket name from URL
-      })
-
-      const { upload_url, file_url } = data
-
+      
       // Upload to S3
-      const uploadResponse = await fetch(upload_url, {
+      const uploadResponse = await fetch(data.upload_url, {
         method: 'PUT',
-        body: file,
+        body: currentFile,
         headers: {
-          'Content-Type': file.type,
+          'Content-Type': currentFile.type,
         },
       })
 
       if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('S3 Upload Error:', {
-          status: uploadResponse.status,
-          statusText: uploadResponse.statusText,
-          error: errorText
-        });
-        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`)
       }
 
-      // Create video record
-      const videoResponse = await fetch('http://localhost:8000/api/videos/', {
+      // Clear the UI immediately after successful S3 upload
+      resetFileInput()
+      setFile(null)
+      setUploadStatus('idle')
+
+      // Create video record (don't wait for this to reset UI)
+      fetch('http://localhost:8000/api/videos/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: file.name,
-          file_url: file_url,
+          title: currentFile.name,
+          file_url: data.file_url,
         }),
+      }).catch(error => {
+        console.error('Error creating video record:', error)
       })
-
-      if (!videoResponse.ok) throw new Error('Failed to create video record')
-
-      alert('Upload successful!')
+      
     } catch (error) {
-      console.error('Upload error details:', error);
-      throw error;
-    } finally {
-      setUploading(false)
+      console.error('Upload error:', error)
+      resetFileInput()
+      setFile(null)
+      setUploadStatus('error')
+    }
+  }
+
+  // Also clear the file input value after upload
+  const resetFileInput = () => {
+    const input = document.getElementById('video-upload') as HTMLInputElement
+    if (input) {
+      input.value = ''
     }
   }
 
@@ -123,10 +125,10 @@ export default function VideoUpload() {
       {file && (
         <Button 
           onClick={handleSubmit} 
-          disabled={uploading}
+          disabled={uploadStatus === 'uploading'}
           className="w-full"
         >
-          {uploading ? 'Uploading...' : 'Process Video'}
+          {uploadStatus === 'uploading' ? 'Uploading...' : 'Process Video'}
         </Button>
       )}
     </div>

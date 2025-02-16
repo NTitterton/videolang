@@ -7,6 +7,8 @@ class Video(models.Model):
     transcript = models.TextField(blank=True, null=True)
     visual_analysis = models.JSONField(blank=True, null=True)
     processed = models.BooleanField(default=False)
+    processing_status = models.CharField(max_length=100, default='pending')
+    processing_progress = models.FloatField(default=0)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 

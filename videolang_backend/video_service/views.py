@@ -32,6 +32,9 @@ class VideoViewSet(viewsets.ModelViewSet):
         print(f"Starting processing for video {video.id}")
         
         try:
+            video.processing_status = "downloading"
+            video.save()
+            
             # Download video from S3
             print(f"Downloading video from {video.file_url}")
             video_response = requests.get(video.file_url)
@@ -41,6 +44,9 @@ class VideoViewSet(viewsets.ModelViewSet):
 
             frame_analysis = []
             try:
+                video.processing_status = "analyzing frames"
+                video.save()
+                
                 # Extract frames and analyze
                 print("Starting frame analysis...")
                 cap = cv2.VideoCapture(video_path)
@@ -96,13 +102,19 @@ class VideoViewSet(viewsets.ModelViewSet):
                             'timestamp': current_time,
                             'description': vision_response.choices[0].message.content
                         })
+                        progress = (current_time/duration*100)
+                        video.processing_progress = progress
+                        video.processing_status = f"analyzing frames {int(current_time)+1}/{int(duration)}"
+                        video.save()
                 
                 cap.release()
                 print(f"Analyzed {frame_count} frames")
             except Exception as e:
                 print(f"Vision analysis failed: {str(e)}")
-                # Continue with transcription even if vision fails
 
+            video.processing_status = "transcribing"
+            video.save()
+            
             # Get transcript
             print("Starting transcription...")
             with open(video_path, 'rb') as audio_file:
@@ -117,11 +129,13 @@ class VideoViewSet(viewsets.ModelViewSet):
             if frame_analysis:
                 video.visual_analysis = frame_analysis
             video.processed = True
+            video.processing_status = "ready"
             video.save()
             print(f"Video {video.id} processed successfully. processed={video.processed}")
             
         except Exception as e:
             print(f'Processing error for video {video.id}:', str(e))
+            video.processing_status = f"error: {str(e)}"
             video.processed = False
             video.save()
         finally:
@@ -232,3 +246,33 @@ class VideoViewSet(viewsets.ModelViewSet):
                 {'error': str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    def list(self, request):
+        videos = self.get_queryset()
+        valid_videos = []
+        
+        s3_client = boto3.client(
+            's3',
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_NAME
+        )
+        
+        for video in videos:
+            try:
+                # Extract key from the file_url
+                # URL format: https://bucket.region.amazonaws.com/videos/filename
+                key = video.file_url.split('.com/')[-1]
+                
+                # Check if object exists
+                s3_client.head_object(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    Key=key
+                )
+                valid_videos.append(video)
+            except Exception as e:
+                print(f"Video {video.id} not found in S3, deleting record")
+                video.delete()
+        
+        serializer = self.get_serializer(valid_videos, many=True)
+        return Response(serializer.data)

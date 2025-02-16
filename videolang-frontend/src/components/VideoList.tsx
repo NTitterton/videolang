@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Button } from './ui/button'
 
 interface Video {
@@ -10,6 +10,8 @@ interface Video {
   transcript: string | null
   processed: boolean
   uploaded_at: string
+  processing_status: string
+  processing_progress: number
 }
 
 interface Answer {
@@ -20,6 +22,7 @@ interface Answer {
 export default function VideoList() {
   const [videos, setVideos] = useState<Video[]>([])
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
+  const selectedVideoIdRef = useRef<number | null>(null)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [loading, setLoading] = useState(false)
@@ -30,6 +33,13 @@ export default function VideoList() {
       .then(data => {
         console.log('Videos:', data);
         setVideos(data)
+        // Update selectedVideo if it exists
+        if (selectedVideoIdRef.current) {
+          const updatedVideo = data.find((v: Video) => v.id === selectedVideoIdRef.current)
+          if (updatedVideo && updatedVideo.processed !== selectedVideo?.processed) {
+            setSelectedVideo(updatedVideo)
+          }
+        }
       })
   }
 
@@ -38,7 +48,7 @@ export default function VideoList() {
     // Refresh every 5 seconds
     const interval = setInterval(fetchVideos, 5000)
     return () => clearInterval(interval)
-  }, [])
+  }, []) // Empty dependency array
 
   const askQuestion = async () => {
     if (!selectedVideo || !question) return
@@ -68,6 +78,14 @@ export default function VideoList() {
     }
   }
 
+  // Create a function to handle video selection
+  const handleVideoSelect = (video: Video) => {
+    setSelectedVideo(video)
+    selectedVideoIdRef.current = video.id
+    setQuestion('')
+    setAnswer(null)
+  }
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold">Your Videos</h2>
@@ -78,11 +96,21 @@ export default function VideoList() {
             className={`border rounded-lg p-4 cursor-pointer hover:bg-gray-50 ${
               selectedVideo?.id === video.id ? 'border-blue-500 bg-blue-50' : ''
             }`}
-            onClick={() => setSelectedVideo(video)}
+            onClick={() => handleVideoSelect(video)}
           >
             <h3 className="font-medium">{video.title}</h3>
             <p className="text-sm text-gray-500">
-              Status: {video.processed ? 'Ready for questions' : 'Processing video...'}
+              Status: {
+                video.processed 
+                  ? 'Ready for questions'
+                  : video.processing_status === 'downloading'
+                    ? 'Loading video for analysis'
+                    : video.processing_status.startsWith('analyzing frames')
+                      ? `Analyzing video: frame ${video.processing_status.split('frames ')[1]}`
+                      : video.processing_status === 'transcribing'
+                        ? 'Creating transcript'
+                        : video.processing_status
+              }
             </p>
             <p className="text-xs text-gray-400">
               Uploaded: {new Date(video.uploaded_at).toLocaleString()}
