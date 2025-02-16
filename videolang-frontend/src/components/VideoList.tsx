@@ -19,12 +19,18 @@ interface Answer {
   timestamp: number;
 }
 
+interface QA {
+  question: string;
+  answer: string;
+  timestamp: number;
+}
+
 export default function VideoList() {
   const [videos, setVideos] = useState<Video[]>([])
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
   const selectedVideoIdRef = useRef<number | null>(null)
   const [question, setQuestion] = useState('')
-  const [answer, setAnswer] = useState<Answer | null>(null)
+  const [qaHistory, setQaHistory] = useState<QA[]>([])
   const [loading, setLoading] = useState(false)
 
   const fetchVideos = () => {
@@ -50,6 +56,13 @@ export default function VideoList() {
     return () => clearInterval(interval)
   }, []) // Empty dependency array
 
+  const handleVideoSelect = (video: Video) => {
+    setSelectedVideo(video)
+    selectedVideoIdRef.current = video.id
+    setQuestion('')
+    setQaHistory([])  // Clear history when switching videos
+  }
+
   const askQuestion = async () => {
     if (!selectedVideo || !question) return
     setLoading(true)
@@ -68,7 +81,11 @@ export default function VideoList() {
       if (!response.ok) throw new Error('Failed to get answer')
       
       const data = await response.json()
-      setAnswer(data)
+      setQaHistory(prev => [...prev, { 
+        question, 
+        answer: data.answer, 
+        timestamp: data.timestamp 
+      }])
       setQuestion('')
     } catch (error) {
       console.error('Error asking question:', error)
@@ -76,14 +93,6 @@ export default function VideoList() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // Create a function to handle video selection
-  const handleVideoSelect = (video: Video) => {
-    setSelectedVideo(video)
-    selectedVideoIdRef.current = video.id
-    setQuestion('')
-    setAnswer(null)
   }
 
   return (
@@ -132,33 +141,45 @@ export default function VideoList() {
             />
           )}
           
-          <div className="space-y-2">
-            <textarea
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask a question about the video..."
-              className="w-full p-2 border rounded-lg"
-              rows={3}
-            />
-            <Button 
-              onClick={askQuestion}
-              disabled={!selectedVideo.processed || loading}
-            >
-              {loading ? 'Thinking...' : 'Ask Question'}
-            </Button>
-          </div>
+          <div className="space-y-4">
+            {qaHistory.length > 0 && (
+              <div className="space-y-4">
+                {qaHistory.map((qa, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">Question:</h4>
+                      <p>{qa.question}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-medium mb-2">Answer:</h4>
+                      <p>{qa.answer}</p>
+                      {qa.timestamp > 0 && (
+                        <p className="text-sm text-gray-500 mt-2">
+                          Timestamp: {qa.timestamp} seconds
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-          {answer && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">Answer:</h4>
-              <p>{answer.answer}</p>
-              {answer.timestamp > 0 && (
-                <p className="text-sm text-gray-500 mt-2">
-                  Timestamp: {answer.timestamp} seconds
-                </p>
-              )}
+            <div className="space-y-2">
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Ask a question about the video..."
+                className="w-full p-2 border rounded-lg"
+                rows={3}
+              />
+              <Button 
+                onClick={askQuestion}
+                disabled={!selectedVideo.processed || loading}
+              >
+                {loading ? 'Thinking...' : 'Ask Question'}
+              </Button>
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>

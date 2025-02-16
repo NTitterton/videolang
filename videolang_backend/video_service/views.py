@@ -196,7 +196,6 @@ class VideoViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Video not processed yet'}, status=400)
 
         try:
-            # Combine transcript and visual analysis for better answers
             prompt = f"""
             Video Transcript: {video.transcript}
             
@@ -206,8 +205,9 @@ class VideoViewSet(viewsets.ModelViewSet):
             Question: {question}
             
             Using both the transcript and visual analysis, find the most relevant timestamp and provide an answer.
+            If there's no specific timestamp relevant to the answer, use -1.
             Return your response in this format:
-            Timestamp: [time in seconds]
+            Timestamp: [time in seconds or -1 if not applicable]
             Answer: [your answer]
             """
 
@@ -224,8 +224,17 @@ class VideoViewSet(viewsets.ModelViewSet):
             timestamp_line = response_text.split('\n')[0]
             answer_line = response_text.split('\n')[1]
             
-            timestamp = float(timestamp_line.split(': ')[1])
-            answer = answer_line.split(': ')[1]
+            try:
+                timestamp = float(timestamp_line.split(': ')[1])
+            except (ValueError, IndexError):
+                # If timestamp can't be parsed, use -1
+                timestamp = -1
+
+            try:
+                answer = answer_line.split(': ')[1]
+            except IndexError:
+                # If answer format is incorrect, use the whole line
+                answer = answer_line
 
             # Save the question and answer
             VideoQuestion.objects.create(
