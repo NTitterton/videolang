@@ -40,7 +40,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-default-secret-key-here')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']  # We'll restrict this to our Railway domain later
+ALLOWED_HOSTS = ['localhost', '.onrender.com']
 
 
 # Application definition

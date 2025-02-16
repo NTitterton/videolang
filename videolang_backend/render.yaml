@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: videolang
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn videolang_backend.wsgi
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0 
