@@ -11,7 +11,7 @@ rm -rf venv
 # Create fresh venv in root directory
 python -m venv venv
 source venv/bin/activate  # On Windows: .\venv\Scripts\activate
-pip install django djangorestframework django-cors-headers python-dotenv openai psycopg2-binary boto3 requests opencv-python pillow
+pip install django djangorestframework django-cors-headers python-dotenv openai psycopg2-binary boto3 requests opencv-python pillow gunicorn
 
 # Create new Django project
 django-admin startproject videolang_backend
@@ -45,4 +45,7 @@ python manage.py makemigrations video_service
 python manage.py migrate
 
 # In the frontend directory
-vercel 
+vercel
+
+cd videolang_backend
+pip freeze > requirements.txt 
