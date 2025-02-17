@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: videolang-backend
+    env: python
+    buildCommand: cd videolang_backend && pip install -r requirements.txt
+    startCommand: cd videolang_backend && gunicorn videolang_backend.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.7
+    plan: standard # 1GB RAM, $7/month 
