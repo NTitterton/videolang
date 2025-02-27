@@ -2,6 +2,8 @@
 
 VideoLang is a web application that analyzes videos using OpenCV and OpenAI's Vision API to provide detailed descriptions of video content. You can then ask questions and have a followup chat with the video! Created for the Roe AI take home assessment.
 
+Live version: https://videolang.vercel.app
+
 ## Architecture
 
 - Frontend: Next.js (deployed on Vercel)
